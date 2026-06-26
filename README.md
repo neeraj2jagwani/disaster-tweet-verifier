@@ -2,8 +2,8 @@
 
 A lightweight, public REST API + web UI that predicts whether a short text describes a real disaster.
 
-- **Live demo:** `https://disaster-tweet-verifier.onrender.com` (replace with your deployed Render URL)
-- **Git repo:** `https://github.com/USERNAME/disaster-tweet-verifier`
+- **Live demo:** `https://disaster-tweet-verifier-cwta.onrender.com`
+- **Git repo:** `https://anonymous.4open.science/r/disaster-tweet-verifier-8C7E/README.md`
 
 ## What it does
 
@@ -25,7 +25,7 @@ The root path (`/`) serves a single-page dark-themed UI where anyone can paste t
 - **API**: FastAPI on Python 3.11. It validates JSON, handles CORS, and serves static files from the same process.
 - **UI**: Vanilla HTML/CSS/JS with a dark theme, live character counter, confidence meter, and loading/error states.
 - **Build**: The model is trained from the bundled `train.csv` during the build step, so no model file needs to be committed (`model.pkl` is git-ignored).
-- **Deployment**: Render free web service (Python runtime, defined in `render.yaml`). A `Dockerfile` is also included if you prefer a container-based deploy.
+- **Deployment**: Render free web service (Python runtime, defined in `render.yaml`). 
 
 ## Run locally
 
@@ -45,7 +45,7 @@ curl -X POST http://localhost:8000/predict \
   -d '{"text": "Forest fire near La Ronge Sask. Canada", "keyword": "fire"}'
 ```
 
-The dataset (`train.csv`) is bundled in the repo, so `train.py` reads it locally with no network access. If it is missing, `train.py` falls back to downloading it.
+The dataset (`train.csv`) is bundled in the repo, so `train.py` reads it locally with no network access.
 
 ## Deploy to Render (free tier)
 
@@ -62,10 +62,7 @@ This repo includes a `render.yaml` Blueprint, so deployment is one click after p
    ```
    uvicorn app:app --host 0.0.0.0 --port $PORT
    ```
-5. Once live, your service is available at `https://<service-name>.onrender.com`.
+5. Once live, the service is available at `https://disaster-tweet-verifier-cwta.onrender.com`.
 
 **Note:** Free Render services spin down after ~15 minutes of inactivity, so the first request after idle may take ~30-60 s to cold start. The `/health` endpoint is used as the health check.
 
-## Design trade-offs
-
-I chose a classical TF-IDF ensemble over a transformer because the task values a working, low-latency public API over cutting-edge F1. The model is tiny, fast to train, easy to audit, and fits comfortably within Render's free 512 MB tier with sub-second inference. Word + character n-grams handle noisy tweet text (typos, hashtags), the `keyword` column adds a strong signal, and tuning the decision threshold squeezes out extra F1 — reaching **~0.79** without the cost of a heavy neural model. The UI is intentionally minimal and self-hosted in the same process to keep deployment and CORS simple.
