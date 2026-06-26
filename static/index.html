@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Disaster Tweet Verifier</title>
+  <style>
+    :root {
+      --bg: #0a0b0f;
+      --bg-grad-1: #14161d;
+      --bg-grad-2: #0a0b0f;
+      --card: #14161d;
+      --card-header: #161922;
+      --border: #262a36;
+      --text: #e7e9ee;
+      --muted: #8b90a0;
+      --faint: #5a5f70;
+      --accent: #f5a623;
+      --accent-2: #f97316;
+      --danger: #f87171;
+      --success: #4ade80;
+      --radius: 14px;
+      --mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background:
+        radial-gradient(1200px 600px at 50% -10%, var(--bg-grad-1), transparent 60%),
+        var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+      min-height: 100vh;
+    }
+    .container {
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 56px 20px 72px;
+    }
+    header { text-align: center; margin-bottom: 40px; }
+    h1 {
+      margin: 0 0 16px;
+      font-size: 40px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+    }
+    h1 .grad {
+      background: linear-gradient(90deg, var(--accent), var(--accent-2));
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    h1 .tick { color: var(--accent-2); }
+    .subtitle {
+      color: var(--muted);
+      font-size: 17px;
+      max-width: 620px;
+      margin: 0 auto;
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: 0 20px 50px -20px rgba(0, 0, 0, 0.6);
+    }
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 14px 20px;
+      background: var(--card-header);
+      border-bottom: 1px solid var(--border);
+      font-family: var(--mono);
+      font-size: 13px;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+    }
+    .card-header .title { color: var(--muted); }
+    .card-header .count { color: var(--faint); }
+    textarea {
+      width: 100%;
+      min-height: 220px;
+      padding: 20px;
+      border: none;
+      background: transparent;
+      color: var(--text);
+      font-size: 16px;
+      resize: vertical;
+      font-family: inherit;
+      display: block;
+    }
+    textarea::placeholder { color: var(--faint); }
+    textarea:focus { outline: none; }
+    .run-btn {
+      width: 100%;
+      background: #1b1f2a;
+      color: var(--muted);
+      border: none;
+      border-top: 1px solid var(--border);
+      padding: 18px;
+      font-size: 15px;
+      font-weight: 600;
+      font-family: var(--mono);
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: background 0.15s ease, color 0.15s ease;
+    }
+    .run-btn:hover:not(:disabled),
+    .run-btn.active:not(:disabled) {
+      background: linear-gradient(90deg, var(--accent), var(--accent-2));
+      color: #0a0b0f;
+    }
+    .run-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+    .result {
+      display: none;
+      margin-top: 24px;
+      padding: 24px;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      background: var(--card);
+    }
+    .result.visible { display: block; }
+    .result.disaster { border-color: rgba(248, 113, 113, 0.5); background: rgba(248, 113, 113, 0.08); }
+    .result.not-disaster { border-color: rgba(74, 222, 128, 0.4); background: rgba(74, 222, 128, 0.06); }
+    .result-tag {
+      font-family: var(--mono);
+      font-size: 12px;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--faint);
+      margin-bottom: 8px;
+    }
+    .result-label { font-size: 24px; font-weight: 700; margin-bottom: 14px; }
+    .result.disaster .result-label { color: var(--danger); }
+    .result.not-disaster .result-label { color: var(--success); }
+    .meter {
+      height: 8px;
+      width: 100%;
+      background: #1b1f2a;
+      border-radius: 999px;
+      overflow: hidden;
+      margin-bottom: 8px;
+    }
+    .meter-fill {
+      height: 100%;
+      width: 0%;
+      border-radius: 999px;
+      background: linear-gradient(90deg, var(--accent), var(--accent-2));
+      transition: width 0.4s ease;
+    }
+    .result-score { color: var(--muted); font-size: 14px; font-family: var(--mono); }
+    .error {
+      display: none;
+      margin-top: 20px;
+      color: var(--danger);
+      background: rgba(248, 113, 113, 0.08);
+      padding: 14px 16px;
+      border-radius: var(--radius);
+      border: 1px solid rgba(248, 113, 113, 0.4);
+    }
+    .error.visible { display: block; }
+    .spinner {
+      display: inline-block;
+      width: 14px;
+      height: 14px;
+      border: 2px solid rgba(10, 11, 15, 0.35);
+      border-top-color: #0a0b0f;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin-right: 10px;
+      vertical-align: middle;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    footer {
+      text-align: center;
+      color: var(--faint);
+      font-size: 13px;
+      margin-top: 32px;
+      font-family: var(--mono);
+    }
+    footer a { color: var(--accent); text-decoration: none; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1><span class="tick"></span>Disaster Tweet <span class="grad">Verifier</span></h1>
+      <div class="subtitle">Submit any disaster related Tweet</div>
+    </header>
+
+    <div class="card">
+      <div class="card-header">
+        <span class="title">Text Input</span>
+        <span class="count"><span id="char-count">0</span> chars</span>
+      </div>
+      <textarea id="text" placeholder="Forest fire near La Ronge Sask. Canada"></textarea>
+      <button id="predict" class="run-btn" type="button"> Verify</button>
+    </div>
+
+    <div id="error" class="error"></div>
+    <div id="result" class="result">
+      <div class="result-tag">Result</div>
+      <div class="result-label" id="result-label"></div>
+      <div class="meter"><div class="meter-fill" id="meter-fill"></div></div>
+      <div class="result-score" id="result-score"></div>
+    </div>
+
+    <footer>
+      <a href="/health" target="_blank">Page Health check</a>
+    </footer>
+  </div>
+
+  <script>
+    const textEl = document.getElementById('text');
+    const predictBtn = document.getElementById('predict');
+    const charCount = document.getElementById('char-count');
+    const resultEl = document.getElementById('result');
+    const resultLabel = document.getElementById('result-label');
+    const resultScore = document.getElementById('result-score');
+    const meterFill = document.getElementById('meter-fill');
+    const errorEl = document.getElementById('error');
+
+    function setLoading(loading) {
+      predictBtn.disabled = loading;
+      if (loading) {
+        predictBtn.innerHTML = '<span class="spinner"></span>Analysing...';
+      } else {
+        predictBtn.textContent = ' Verify';
+      }
+    }
+
+    function showError(msg) {
+      errorEl.textContent = msg;
+      errorEl.classList.add('visible');
+      resultEl.classList.remove('visible');
+    }
+
+    function hideError() {
+      errorEl.classList.remove('visible');
+    }
+
+    function showResult(label, score) {
+      hideError();
+      resultEl.className = 'result visible ' + (label === 1 ? 'disaster' : 'not-disaster');
+      resultLabel.textContent = label === 1 ? 'Real disaster' : 'Probably not a disaster';
+      meterFill.style.width = `${(score * 100).toFixed(1)}%`;
+      resultScore.textContent = `Label: ${label} \u00b7 Disaster probability: ${(score * 100).toFixed(1)}%`;
+    }
+
+    async function predict() {
+      const text = textEl.value.trim();
+      if (!text) {
+        showError('Please enter some text first.');
+        return;
+      }
+
+      hideError();
+      setLoading(true);
+
+      try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 10000);
+
+        const response = await fetch('/predict', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text }),
+          signal: controller.signal,
+        });
+        clearTimeout(timeout);
+
+        if (!response.ok) {
+          throw new Error(`Server error: ${response.status}`);
+        }
+
+        const data = await response.json();
+        showResult(data.label, data.score);
+      } catch (err) {
+        if (err.name === 'AbortError') {
+          showError('Request timed out. Please try again.');
+        } else if (err.message.includes('Failed to fetch')) {
+          showError('Network error. Check your connection and try again.');
+        } else {
+          showError(err.message || 'Something went wrong.');
+        }
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    predictBtn.addEventListener('click', predict);
+    textEl.addEventListener('keydown', (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') predict();
+    });
+
+    textEl.addEventListener('input', () => {
+      charCount.textContent = textEl.value.length;
+      predictBtn.classList.toggle('active', textEl.value.trim().length > 0);
+    });
+  </script>
+</body>
+</html>
